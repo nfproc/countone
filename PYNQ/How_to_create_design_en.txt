@@ -1,0 +1,50 @@
+1. Create a folder.
+   We assume that the folder is created as c:\research\TRNG_design
+
+2. Copy the contents of the zip file into the created folder,
+   or alternatively, clone the repository using Git.
+
+3. Launch Vivado and create a new project.
+   Set PYNQ-Z1 as the target device.
+
+4. Click [PROJECT MANAGER -> Settings]
+   Click the + button in the IP Repositories list in the [IP -> Repository] page.
+   Select and add the ip_repo folder (C:\research\TRNG_design\PYNQ\ip_repo).
+
+5. Create a new block design.
+
+6. Add a ZYNQ7 Processing System and perform [Run Block Automation].
+
+7. Double-click the created ZYNQ7 Processing System to open the properties window.
+   Proceed to the [PS-PL Configuration] page and
+   check the [HP Slave AXI Interface -> S AXI HP0 interface] option.
+   You can safely ignore warnings that appear at this time.
+
+8. Add the following five IP cores:
+  - TC_TERO_IP_v1_0
+  - Countone
+  - AXI Direct Memory Access
+  - AXI4-Stream Broadcaster
+  - AXI4-Stream Data Width Converter
+
+9. Double-click the AXI Direct Memory Access block.
+   Uncheck [Enable Scatter Gather Engine] and [Enable Read Channel].
+
+10. Double-click the AXI4-Stream Data Width Converter block.
+    Set the value of [Master Interface TDATA WIDTH] to 1 (byte).
+
+11. Perform [Run Connection Automation].
+    This will create bus connections from the processor to the IP cores.
+
+12. Connect the following signals manually:
+  - TC_TERO_IP_v1_0 - AXIS_RNG                -> AXI4-Stream Broadcaster - S_AXIS
+  - AXI4-Stream Broadcaster - M00_AXIS        -> AXI Direct Memory Access - S_AXIS_S2MM
+  - AXI4-Stream Broadcaster - M01_AXIS        -> AXI4-Stream Data Width Converter - S_AXIS
+  - AXI4-Stream Data Width Converter - M_AXIS -> Countone - rand_in
+
+13. Perform [Run Connection Automation] again.
+    This will connect clock and reset signals to the stream IP cores.
+
+See block_design.pdf for the resultant block diagram.
+You can automate the processes 5 through 13 by running block_design.tcl
+(Tools -> Run Tcl Script)
