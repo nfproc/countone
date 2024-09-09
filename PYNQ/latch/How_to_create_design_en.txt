@@ -1,0 +1,38 @@
+1. Create a folder.
+   We assume that the folder is created as c:\research\TRNG_design
+
+2. Copy the contents of the zip file into the created folder,
+   or alternatively, clone the repository using Git.
+
+3. Launch Vivado and create a new project.
+   Set PYNQ-Z1 as the target device.
+
+4. Click [PROJECT MANAGER -> Settings]
+   Click the + button in the IP Repositories list in the [IP -> Repository] page.
+   Select and add the ip_repo folder (C:\research\TRNG_design\PYNQ\ip_repo).
+
+5. Create a new block design.
+
+6. Add a ZYNQ7 Processing System and perform [Run Block Automation].
+
+7. Double-click the created ZYNQ7 Processing System to open the properties window.
+   Proceed to the [PS-PL Configuration] page and
+   check the [HP Slave AXI Interface -> S AXI HP0 interface] option.
+   You can safely ignore warnings that appear at this time.
+
+8. Add the following two IP cores:
+  - TRNG_IP_LATCH
+  - AXI Direct Memory Access
+
+9. Double-click the AXI Direct Memory Access block.
+   Uncheck [Enable Scatter Gather Engine] and [Enable Read Channel].
+
+10. Perform [Run Connection Automation].
+    This will create bus connections from the processor to the IP cores.
+
+11. Connect the following signals manually:
+  - TRNG_IP_LATCH - AXIS_RNG -> AXI Direct Memory Access - S_AXIS_S2MM
+
+See block_design.pdf for the resultant block diagram.
+You can automate the processes 5 through 11 by running block_design.tcl
+(Tools -> Run Tcl Script)

@@ -1,0 +1,39 @@
+1. 適当なフォルダを作成，ここでは c:\research\TRNG_design とする
+
+2. zip ファイルの中身を，作成したフォルダ（c:\research\TRNG_design）にコピー
+   または，git を使ってリポジトリをクローン
+
+3. Vivado を起動し，プロジェクトを作成
+   Project Name は適当でよい
+   Project Location はこのフォルダ（c:\research\TRNG_design\PYNQ）を指定する
+   Create Project Subdirectory にチェック
+   PYNQ-Z1 を対象ボードとする
+
+4. Flow Navigator の PROJECT MANAGER → Settings をクリック
+   IP → Repository のページに進み，IP Repositories のリストの + をクリック
+   ip_repo フォルダ（c:\research\TRNG_design\PYNQ\ip_repo）を追加する
+
+5. Create Block Design でブロック図を新規作成
+
+6. ZYNQ7 Processing System を1つ追加し，Run Block Automation を実行
+
+7. 追加した ZYNQ7 Processing System をダブルクリックして設定画面を開く
+   PS-PL Configuration のページに進み，HP Slave AXI Interface → S AXI HP0 interface
+   にチェックを入れて，OK．警告が出るが無視して構わない．
+
+8. 以下の2つの IP コアを追加
+  - TRNG_IP_LATCH
+  - AXI Direct Memory Access
+
+9. 追加した AXI Direct Memory Access をダブルクリックして設定画面を開く
+   Enable Scatter Gather Engine と Enable Read Channel のチェックを外して OK
+
+10. Run Connection Automation を実行（全てにチェックを入れる）
+    これでプロセッサから IP コアを制御するためのバスの信号は自動接続される
+
+11. 以下は手動で配線する:
+  - TRNG_IP_LATCH の AXIS_RNG → AXI Direct Memory Access の S_AXIS_S2MM
+
+最終的なブロック図は block_design.pdf を参照されたい．
+5～11の手順は，Tools → Run Tcl Script で block_design.tcl を実行することで，
+自動的に実行させることも可能．

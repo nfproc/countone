@@ -1,5 +1,5 @@
 // Hardware-oriented implementation of the "count the ones" test
-// 2022-04-13 Naoki F., AIT
+// 2022-04-13 -> 2024-09-09 Naoki F., AIT
 // Contributer: Ryusei O. (as a part of his graduation thesis)
 // See LICENSE.txt for license information.
 
@@ -36,12 +36,49 @@ const ap_uint<3> char2letter[256] = {
   B, C, C, D, C, D, D, E, C, D, D, E, D, E, E, E,
   C, D, D, E, D, E, E, E, D, E, E, E, E, E, E, E};
 
+// translation table from char to number of ones
+const ap_uint<4> char2ones[256] = {
+  0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
+  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+  1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+  2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+  3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+  4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};
+
 // body of the test
 //   rand_in must be an array of 256,004 bytes
+#if defined(MONOBIT_TEST)
+void countone (unsigned char *rand_in, unsigned int *rslt_out, unsigned short *freq_out)
+{
+#pragma HLS interface axis port=rand_in
+#pragma HLS interface axis port=rslt_out
+#pragma HLS interface axis port=freq_out
+#pragma HLS interface ap_ctrl_none port=return
+
+#elif defined(RESULT_STREAM)
+void countone (unsigned char *rand_in, unsigned int *rslt_out)
+{
+#pragma HLS interface axis port=rand_in
+#pragma HLS interface axis port=rslt_out
+#pragma HLS interface ap_ctrl_none port=return
+
+#else
 unsigned int countone (unsigned char *rand_in)
 {
 #pragma HLS interface axis port=rand_in
 #pragma HLS interface s_axilite port=return bundle=ctrl
+
+#endif
 
   unsigned char in_char;
   ap_uint<3> in_letter; 
@@ -55,6 +92,13 @@ unsigned int countone (unsigned char *rand_in)
   ap_ufixed<(EV_T*2)+CHSQ_F,EV_I*2> chsq_inc; // (ev - ov) ^ 2 / ev
   ap_uint<3> letters[5];                      // index of expected value table
   ap_uint<10> pattern;
+#if defined(MONOBIT_TEST)
+  unsigned char last_char[4] = {0};
+  ap_uint<4> in_ones; 
+  ap_uint<14> monobit_one = 0;                // number of ones in 16kb (2kB) block
+  ap_uint<12> monobit_cnt = 0;                // number of bytes read in the block
+  ap_uint<7> monobit_blk = 0;                 // current 16kb block
+#endif
   
   // count the occurrence of strings
   for (ap_uint<12> i = 0; i < 3125; i++) {
@@ -67,12 +111,35 @@ unsigned int countone (unsigned char *rand_in)
 #pragma HLS pipeline II=3
     in_char      = rand_in[i];
     in_letter    = char2letter[in_char];
-    index4      = index_buf[3];
-    index5      = index_buf[3] * 5 + in_letter;
+    index4       = index_buf[3];
+    index5       = index_buf[3] * 5 + in_letter;
     index_buf[3] = index_buf[2] * 5 + in_letter;
     index_buf[2] = index_buf[1] * 5 + in_letter;
     index_buf[1] = index_buf[0] * 5 + in_letter;
     index_buf[0] = in_letter;
+
+#if defined(MONOBIT_TEST)
+    in_ones      = char2ones[in_char ^ last_char[3]];
+    last_char[3] = last_char[2];
+    last_char[2] = last_char[1];
+    last_char[1] = last_char[0];
+    last_char[0] = in_char;
+    if (i >= 4) {
+      if (monobit_cnt == 0) {
+        monobit_one = in_ones;
+        monobit_cnt++;
+      } else if (monobit_cnt != 1999) {
+        monobit_one += in_ones;
+        monobit_cnt++;
+      } else {
+        monobit_one += in_ones;
+        freq_out[monobit_blk] = monobit_one;
+        monobit_blk++;
+        monobit_cnt = 0;
+      }
+    }
+#endif
+
     if (i >= 5) { // II of this loop is 3 because of this read-modify-write part
       freq4[index4] = (freq4[index4] >= (1 << EV_I)) ? (ap_uint<EV_I+1>) (1 << EV_I) :
                                                        (ap_uint<EV_I+1>) (freq4[index4] + 1);
@@ -132,6 +199,11 @@ unsigned int countone (unsigned char *rand_in)
   }
 
   // return the value (or invalid value if overflow has occurred)
+#if defined(RESULT_STREAM) || defined(MONOBIT_TEST)
+  *rslt_out = (chsq >= OF_THRES) ? 0xffffffff :
+      (unsigned int)((ap_ufixed<CHSQ_T+16,CHSQ_I+16>) chsq << 16);
+#else
   return (chsq >= OF_THRES) ? 0xffffffff :
          (unsigned int)((ap_ufixed<CHSQ_T+16,CHSQ_I+16>) chsq << 16);
+#endif
 }

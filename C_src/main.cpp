@@ -1,5 +1,5 @@
 // Hardware-oriented implementation of the "count the ones" test
-// 2022-04-13 Naoki F., AIT
+// 2022-04-13 -> 2024-09-09 Naoki F., AIT
 // See LICENSE.txt for license information.
 
 #include <stdio.h>
@@ -27,7 +27,13 @@ double chsq_dbl[NUM_DATA] = { 3377.247277,  4271.588035,  4083.027511,  2614.531
                               4251.168622,  2375.837301,  2386.387452,  4294.723126,
                               2750.750886,  6287.271160,  4565.846928,  2452.582768};
 
+#if defined(MONOBIT_TEST)
+void countone(unsigned char *, unsigned int *, unsigned short *);
+#elif defined(RESULT_STREAM)
+void countone(unsigned char *, unsigned int *);
+#else
 unsigned int countone(unsigned char *);
+#endif
 
 int main(int argc, char **argv) {
   FILE *fp;
@@ -35,6 +41,7 @@ int main(int argc, char **argv) {
   double chsq, ans, diff, diff_accum, diff_max;
   char filename[128];
   unsigned int result;
+  unsigned short freq[128];
   int i;
 
   for (i = 0; i < NUM_DATA; i++) {
@@ -50,7 +57,13 @@ int main(int argc, char **argv) {
       return 1;
     }
     fclose(fp);
+#if defined(MONOBIT_TEST)
+    countone(rand_data, &result, freq);
+#elif defined(RESULT_STREAM)
+    countone(rand_data, &result);
+#else
     result = countone(rand_data);
+#endif
     if (result == 0xffffffff) {
       reject += 1;
       printf("param = %3d, rejected\n", param_no[i]);

@@ -6,8 +6,14 @@
 
 #define CHSQ_T (CHSQ_I + CHSQ_F)
 #define CHSQ_I 16
-#define CHSQ_F 22
+#define CHSQ_F 18
 #define EV_T (EV_I + EV_F)
 #define EV_I 12
-#define EV_F 4
+#define EV_F 0
 #define OF_THRES (1 << (CHSQ_I - 1))
+
+// if commenting out the below line, the results will output via AXI-stream
+// #define RESULT_STREAM
+
+// if commenting out the below line, an additional monobit test will be conducted
+// #define MONOBIT_TEST
