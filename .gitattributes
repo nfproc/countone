@@ -1,2 +1,4 @@
 PYNQ/latch/ip_repo/* linguist-vendored
+PYNQ/latch/block_design.tcl linguist-vendored
 PYNQ/TC-TERO/ip_repo/* linguist-vendored
+PYNQ/TC-TERO/block_design.tcl linguist-vendored
