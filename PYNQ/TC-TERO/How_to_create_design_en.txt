@@ -20,31 +20,42 @@
    check the [HP Slave AXI Interface -> S AXI HP0 interface] option.
    You can safely ignore warnings that appear at this time.
 
-8. Add the following five IP cores:
+8. Add the following six IP cores:
   - TC_TERO_IP_v1_0
   - Countone
   - AXI Direct Memory Access
   - AXI4-Stream Broadcaster
-  - AXI4-Stream Data Width Converter
+  - AXI4-Stream Interconnect
+  - Constant
 
 9. Double-click the AXI Direct Memory Access block.
    Uncheck [Enable Scatter Gather Engine] and [Enable Read Channel].
 
-10. Double-click the AXI4-Stream Data Width Converter block.
-    Set the value of [Master Interface TDATA WIDTH] to 1 (byte).
+10. Double-click the AXI4-Stream Interconnect block.
+    Set [Use control register routing] to Yes.
 
 11. Perform [Run Connection Automation].
-    This will create bus connections from the processor to the IP cores.
+    This will create most of the bus connections from the processor to the IP cores.
 
-12. Connect the following signals manually:
-  - TC_TERO_IP_v1_0 - AXIS_RNG                -> AXI4-Stream Broadcaster - S_AXIS
-  - AXI4-Stream Broadcaster - M00_AXIS        -> AXI Direct Memory Access - S_AXIS_S2MM
-  - AXI4-Stream Broadcaster - M01_AXIS        -> AXI4-Stream Data Width Converter - S_AXIS
-  - AXI4-Stream Data Width Converter - M_AXIS -> Countone - rand_in
+12. To connect AXI4-Stream Interconnect manually,
+    double-click the generated ps7_0_axi_periph and increase [Number of Master Interfaces] by one.
 
-13. Perform [Run Connection Automation] again.
+13. Connect the following signals manually:
+  - TC_TERO_IP_v1_0 - AXIS_RNG                    -> AXI4-Stream Broadcaster - S_AXIS
+  - AXI4-Stream Broadcaster - M00_AXIS            -> AXI Direct Memory Access - S_AXIS_S2MM
+  - AXI4-Stream Broadcaster - M01_AXIS            -> AXI4-Stream Interconnect - S00_AXIS
+  - AXI4-Stream Interconnect - M00_AXIS           -> Countone - rand_in
+  - ps7_0_axi_periph - Mxx_AXI (added in Step 12) -> AXI4-Stream Interconnect - S_AXI_CTRL
+  - Constant - dout                               -> AXI4-Stream Interconnect - M01_AXIS_tready (inside M01_AXIS)
+  - AXI4-Stream Interconnect - M01_AXIS_ACLK      -> AXI4-Stream Interconnect - M00_AXIS_ACLK
+    (same for ARESETN)
+
+14. Perform [Run Connection Automation] again.
     This will connect clock and reset signals to the stream IP cores.
 
+15. From the Address Editor tab, right-click the unassignred axis_interconnect... port
+    and select Assign. This will assign AXI4-Stream Interconnect to PS's memory map.
+
 See block_design.pdf for the resultant block diagram.
-You can automate the processes 5 through 13 by running block_design.tcl
+You can automate the processes 5 through 15 by running block_design.tcl
 (Tools -> Run Tcl Script)
